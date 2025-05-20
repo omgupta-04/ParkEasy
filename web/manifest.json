@@ -1,6 +1,6 @@
 {
-    "name": "parkeasy",
-    "short_name": "parkeasy",
+    "name": "payment",
+    "short_name": "payment",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

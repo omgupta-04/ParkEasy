@@ -1,0 +1,2 @@
+/Users/chakshu2005/AndroidStudioProjects/payment/android/app/.cxx/Debug/i496q101/x86/CMakeFiles/edit_cache.dir
+/Users/chakshu2005/AndroidStudioProjects/payment/android/app/.cxx/Debug/i496q101/x86/CMakeFiles/rebuild_cache.dir

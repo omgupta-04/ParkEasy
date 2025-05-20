@@ -10,9 +10,9 @@ void main() {
 class UpiDemo extends StatelessWidget {
   List<ApplicationMeta> upiApps = [];
 
-  final String upiId = "demo@ok";
+  final String upiId = "yamanayurveda@okhdfcbank";
 
-  final String name = "Chakshu Jindal";
+  final String name = "Gagan Jindal";
 
   final String transactionNote = "Demo Payment";
 
