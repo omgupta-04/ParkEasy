@@ -4,6 +4,11 @@ import 'auth_screen.dart';
 import 'parking_details_screen.dart';
 import 'history_user_screen.dart';
 import '../services/notifi_handler.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+
+
 
 
 
@@ -64,7 +69,28 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   double _selectedRadius = 1.0;
   int _selectedIndex = 0;
+  final GlobalKey _profileAvatarKey = GlobalKey();
+  final GlobalKey _searchBoxKey=GlobalKey();
+  final GlobalKey _filterKey = GlobalKey();
+  final GlobalKey _historyKey = GlobalKey();
 
+  Widget showcaseWrapper({
+    required GlobalKey key,
+    required Widget child,
+    required String description,
+  }) {
+    return Showcase(
+      key: key,
+      description: description,
+      descTextStyle: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: Colors.white,
+      ),
+      tooltipBackgroundColor: Colors.blueAccent,
+      child: child,
+    );
+  }
 
   // TODO: Insert map controller and location logic here if needed
   // Example: GoogleMapController? _mapController;
@@ -110,6 +136,31 @@ class _HomeScreenState extends State<HomeScreen> {
   // }
 
   @override
+  void initState() {
+    super.initState();
+    _checkAndShowShowcase();
+  }
+
+  Future<void> _checkAndShowShowcase() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool hasSeenShowcase = prefs.getBool('hasSeenShowcase') ?? false;
+
+    if (!hasSeenShowcase || hasSeenShowcase) {//for now change late to ! case only
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ShowCaseWidget.of(context).startShowCase([
+          _profileAvatarKey,
+          _searchBoxKey,
+          _filterKey,
+          _historyKey
+        ]);
+      });
+      await prefs.setBool('hasSeenShowcase', true); // Mark as shown
+    }
+  }
+
+
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
@@ -141,18 +192,23 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 Scaffold.of(context).openEndDrawer();
               },
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.grey[200],
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/profile_default.jpg',
-                    fit: BoxFit.cover,
-                    width: 36,
-                    height: 36,
+              child: showcaseWrapper(
+                key: _profileAvatarKey,
+                description: 'Tap here to open your profile and settings.',
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey[200],
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/profile_default.jpg',
+                      fit: BoxFit.cover,
+                      width: 36,
+                      height: 36,
+                    ),
                   ),
                 ),
               ),
+
             ),
           ),
         ),
@@ -215,14 +271,18 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search address or area',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  child: showcaseWrapper(
+                    key: _searchBoxKey,
+                    description: 'Tap here to search nearby parking locations.',
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search address or area',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                       ),
-                      contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                     ),
                   ),
                 ),
@@ -232,21 +292,26 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) =>const NotifiHandler()),
+                      MaterialPageRoute(builder: (_) => const NotifiHandler()),
                     );
                   },
                 ),
               ],
             ),
 
+
             SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildFeatureItem(
-                  Icons.filter_list,
-                  "Filters",
-                  onTap: _showDistanceBottomSheet,
+                showcaseWrapper(
+                  key: _filterKey,
+                  description: 'Tap to filter parking locations by distance.',
+                  child: _buildFeatureItem(
+                    Icons.filter_list,
+                    "Filters",
+                    onTap: _showDistanceBottomSheet,
+                  ),
                 ),
                 _buildFeatureItem(
                   Icons.attach_money,
@@ -523,9 +588,17 @@ class _HomeScreenState extends State<HomeScreen> {
           _scaffoldKey.currentState?.openEndDrawer();
         }
       },
-      items: const [
+      items:  [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
+        BottomNavigationBarItem(
+          icon: showcaseWrapper(
+            key: _historyKey,
+            description: 'Check your past bookings here.',
+            child: Icon(Icons.history),
+          ),
+          label: "History",
+        ),
+
         BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
       ],
     );

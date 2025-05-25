@@ -1,14 +1,92 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'auth_screen.dart';
+import 'package:smartpark0/screens/edit_slot_screen.dart';
 import 'add_parking_screen.dart';
 import 'slot_analytics_screen.dart';
 import 'package:smartpark0/providers/slot_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-
-class OwnerDashboardScreen extends StatelessWidget {
+class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
+
+  @override
+  State<OwnerDashboardScreen> createState() => _OwnerDashboardScreenState();
+}
+
+class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
+  final LocalAuthentication auth = LocalAuthentication();
+  final GlobalKey _profileAvatarKey = GlobalKey();
+  final GlobalKey _reviewKey = GlobalKey();
+  final GlobalKey _editKey = GlobalKey();
+
+  Widget showcaseWrapper({
+    required GlobalKey key,
+    required Widget child,
+    required String description,
+  }) {
+    return Showcase(
+      key: key,
+      description: description,
+      descTextStyle: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: Colors.white,
+      ),
+      tooltipBackgroundColor: Colors.blueAccent,
+      child: child,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAndShowShowcase();
+  }
+
+  Future<void> _checkAndShowShowcase() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool hasSeenShowcase = prefs.getBool('hasSeenShowcase') ?? false;
+
+    // For now, changed to always show showcase. Change to !hasSeenShowcase to show once.
+    if (!hasSeenShowcase || hasSeenShowcase) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ShowCaseWidget.of(context).startShowCase([
+          _profileAvatarKey,
+          _reviewKey,
+          _editKey
+        ]);
+      });
+      await prefs.setBool('hasSeenShowcase', true);
+    }
+  }
+
+  Future<bool> _authenticate() async {
+    try {
+      bool canCheckBiometrics = await auth.canCheckBiometrics;
+      if (!canCheckBiometrics) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Biometric authentication not available')),
+        );
+        return false;
+      }
+      bool isAuthenticated = await auth.authenticate(
+        localizedReason: 'Please authenticate to proceed',
+        options: const AuthenticationOptions(
+          biometricOnly: false,
+          stickyAuth: true,
+        ),
+      );
+      return isAuthenticated;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Authentication error: $e')),
+      );
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,10 +116,12 @@ class OwnerDashboardScreen extends StatelessWidget {
                   onTap: () {
                     Scaffold.of(context).openEndDrawer();
                   },
+                  child: showcaseWrapper(
+                    key: _profileAvatarKey,
+                    description: 'Tap here to open your profile and settings.',
                   child: const CircleAvatar(
-                    backgroundImage:
-                    AssetImage('assets/images/profile_default.jpg'),
-                  ),
+                    backgroundImage: AssetImage('assets/images/profile_default.jpg'),
+                  ),)
                 ),
               ),
             ),
@@ -59,8 +139,7 @@ class OwnerDashboardScreen extends StatelessWidget {
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 3,
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
@@ -108,37 +187,63 @@ class OwnerDashboardScreen extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChangeNotifierProvider(
-                            create: (_) => SlotProvider(),
-                            child: const SlotAnalyticsScreen(),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChangeNotifierProvider(
+                                  create: (_) => SlotProvider(),
+                                  child: const SlotAnalyticsScreen(),
+                                ),
+                              ),
+                            );
+                          },
+                          child: index == 0
+                              ? showcaseWrapper(
+                            key: _reviewKey,
+                            description: 'Tap to view reviews and details of this slot',
+                            child: Row(
+                              children: const [
+                                Icon(Icons.reviews, size: 18, color: Colors.grey),
+                                SizedBox(width: 6),
+                                Text(
+                                  '4 Reviews',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                              : Row(
+                            children: const [
+                              Icon(Icons.reviews, size: 18, color: Colors.grey),
+                              SizedBox(width: 6),
+                              Text(
+                                '4 Reviews',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      );
-                    },
-                       child: Row(
-                          children: const [
-                            Icon(Icons.reviews, size: 18, color: Colors.grey),
-                            SizedBox(width: 6),
-                            Text(
-                              '4 Reviews',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                  ),
+
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            _actionButton(context, 'Edit', Colors.lightBlueAccent),
+                            index == 0
+                                ? showcaseWrapper(
+                              key: _editKey,
+                              description: 'Tap to edit details of this parking slot.',
+                              child: _actionButton(context, 'Edit', Colors.lightBlueAccent),
+                            )
+                                : _actionButton(context, 'Edit', Colors.lightBlueAccent),
+
                             const SizedBox(width: 10),
                             _actionButton(context, 'Delete', Colors.redAccent),
                           ],
@@ -194,11 +299,54 @@ class OwnerDashboardScreen extends StatelessWidget {
 
   Widget _actionButton(BuildContext context, String label, Color color) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => AuthScreen()),
-        );
+      onTap: () async {
+        bool authenticated = await _authenticate();
+        if (authenticated) {
+          if (label == 'Edit') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const EditSlotScreen()),
+            );
+          } else if (label == 'Delete') {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Confirm Delete'),
+                  content: const Text('Are you sure you want to delete this slot?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close dialog
+                      },
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.blueAccent),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        // TODO: Add delete logic here (provider or DB)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Slot deleted')),
+                        );
+                      },
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Authentication failed or cancelled')),
+          );
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

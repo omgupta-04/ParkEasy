@@ -3,6 +3,11 @@ import 'splash_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_screen.dart';
 import 'owner_dashboard_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
+
+
+
 
 
 class AuthScreen extends StatefulWidget {
@@ -106,15 +111,25 @@ class _AuthScreenState extends State<AuthScreen> {
     if (_selectedUserType == 'owner') {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => OwnerDashboardScreen()),
+        MaterialPageRoute(
+          builder: (context) => ShowCaseWidget(
+            builder: (showCaseContext) => OwnerDashboardScreen(),
+          ),
+        ),
       );
-    } else if (_selectedUserType == 'user') {
+    }
+    else if (_selectedUserType == 'user') {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen(email: email)),
+        MaterialPageRoute(
+          builder: (context) => ShowCaseWidget(
+            builder: (showCaseContext) => HomeScreen(email: email),
+          ),
+        ),
       );
 
     }
+
   }
 
 
